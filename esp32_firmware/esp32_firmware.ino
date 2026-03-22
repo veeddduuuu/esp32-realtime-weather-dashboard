@@ -18,7 +18,7 @@ DHT dht(DHTPIN, DHTTYPE);
 //Provide the RTDB payload printing info and other helper functions.
 #include "addons/RTDBHelper.h"
 
-// Insert your network credentials
+// Insert your network credentialsx
 #define WIFI_SSID "veduuuuu"
 #define WIFI_PASSWORD "Leo@2545"
 

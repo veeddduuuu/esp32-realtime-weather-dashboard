@@ -3,33 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Real-time IoT Weather Dashboard monitoring temperature and humidity." />
   <title>Live Weather Dashboard</title>
-  <!-- Load Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Load Inter font for modern aesthetics -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      /* Dark gradient background for a modern look */
-      background: linear-gradient(135deg, #1f2937 0%, #0f172a 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #e5e7eb;
-    }
-  </style>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
-    // Including setLogLevel from firestore for robust logging
-    import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-    setLogLevel('debug'); 
 
-    // --- Firebase Configuration (Using report's mock data) ---
+    // --- Firebase Configuration ---
     const firebaseConfig = {
       apiKey: "AIzaSyAQmL_8cxdWiC920C-GnrV6GS4S_wBV5y0",
       authDomain: "esp32-weather-dashboard.firebaseapp.com",
@@ -44,117 +32,107 @@
     const auth = getAuth(app);
     const db = getDatabase(app);
 
-    // New constants for element IDs
     const TEMP_ID = "temp-value";
     const HUM_ID  = "hum-value";
     const TIME_ID = "time-stamp";
     
-    // Realtime Database references
     const tempRef = ref(db, "DHT/temperature");
     const humRef  = ref(db, "DHT/humidity");
     const tsRef   = ref(db, "DHT/lastUpdated");
 
-    /**
-     * Helper function to safely set the text content of an element.
-     * @param {string} id - The element ID.
-     * @param {string} text - The text content to set.
-     */
     function setText(id, text) {
       const el = document.getElementById(id);
       if (el) el.textContent = text;
     }
 
-    /**
-     * Converts a Firebase Unix timestamp (ms) into a readable locale string.
-     * @param {number|null} ms - The timestamp value.
-     * @returns {string} The formatted time string.
-     */
     function formatTime(ms) {
       if (!ms && ms !== 0) return "--";
       const d = new Date(ms);
-      return d.toLocaleString();
+      return d.toLocaleString(undefined, {
+        month: 'short', day: 'numeric',
+        hour: '2-digit', minute:'2-digit', second:'2-digit'
+      });
     }
 
     async function start() {
       try {
         await signInAnonymously(auth);
         console.log("Firebase Authenticated Anonymously.");
+        
+        // Hide error message on successful auth
+        document.getElementById("error-msg").style.display = "none";
 
-        // Subscribe to Temperature changes
         onValue(tempRef, (snap) => {
           const val = snap.val();
-          // Use user's logic: Append "°C" if value is not null, otherwise just "--"
-          setText(TEMP_ID, (val ?? "--") + (val != null ? " °C" : "")); 
+          setText(TEMP_ID, (val ?? "--") + (val != null ? "°C" : "")); 
         }, (error) => console.error("Temperature listener error:", error));
 
-        // Subscribe to Humidity changes
         onValue(humRef, (snap) => {
           const val = snap.val();
-          // Use user's logic: Append " %" if value is not null, otherwise just "--"
-          setText(HUM_ID, (val ?? "--") + (val != null ? " %" : ""));
+          setText(HUM_ID, (val ?? "--") + (val != null ? "%" : ""));
         }, (error) => console.error("Humidity listener error:", error));
 
-        // Subscribe to Timestamp changes
         onValue(tsRef, (snap) => {
           const val = snap.val();
           if (val !== null) {
-            setText(TIME_ID, "Last Updated: " + formatTime(val));
+            setText(TIME_ID, formatTime(val));
           } else {
-             setText(TIME_ID, "Last Updated: --");
+             setText(TIME_ID, "--");
           }
         }, (error) => console.error("Timestamp listener error:", error));
       } catch (error) {
         console.error("Authentication or Initialization failed:", error);
         document.getElementById("error-msg").textContent = "Connection Error: Check console and Firebase configuration.";
+        document.getElementById("error-msg").style.display = "block";
       }
     }
 
-    // Start the application
     start();
   </script>
 </head>
-<body class="p-4 sm:p-8">
-  <div id="error-msg" class="text-red-400 text-center mb-4"></div>
-  <!-- Main Dashboard Card: Responsive layout, dark theme -->
-  <div class="max-w-xl w-full mx-auto bg-gray-800 p-8 rounded-xl shadow-2xl border-t-4 border-cyan-500">
-    <header class="mb-8 border-b border-gray-700 pb-4">
-      <h1 class="text-3xl sm:text-4xl font-bold text-center text-white flex items-center justify-center">
-        <!-- Lucide Sun Icon -->
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mr-3 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M4.93 19.07l1.41-1.41"/><path d="M17.66 6.34l1.41-1.41"/><circle cx="12" cy="12" r="7"/></svg>
-        IoT Weather Dashboard
-      </h1>
-      <p class="text-center text-gray-400 mt-2 text-sm">Real-time telemetry via NodeMCU & Firebase</p>
-    </header>
-
-    <main class="space-y-6">
-      <!-- Temperature Card -->
-      <div class="flex items-center justify-between bg-gray-700/50 hover:bg-gray-700 transition duration-150 p-5 rounded-lg shadow-lg border border-gray-700">
-        <div class="flex items-center">
-          <!-- Lucide Thermometer Icon -->
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-400 mr-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
-          <span class="text-xl font-medium text-gray-300">Temperature</span>
-        </div>
-        <!-- ID changed to match new TEMP_ID constant -->
-        <div class="text-5xl font-extrabold text-red-300" id="temp-value">-- °C</div>
-      </div>
-
-      <!-- Humidity Card -->
-      <div class="flex items-center justify-between bg-gray-700/50 hover:bg-gray-700 transition duration-150 p-5 rounded-lg shadow-lg border border-gray-700">
-        <div class="flex items-center">
-          <!-- Lucide Droplet Icon -->
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-400 mr-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a4 4 0 0 0 4-4V6a4 4 0 0 0-8 0v12a4 4 0 0 0 4 4z"/></svg>
-          <span class="text-xl font-medium text-gray-300">Humidity</span>
-        </div>
-        <!-- ID changed to match new HUM_ID constant -->
-        <div class="text-5xl font-extrabold text-blue-300" id="hum-value">-- %</div>
-      </div>
-    </main>
+<body>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  
+  <div class="dashboard-wrapper">
+    <div id="error-msg"></div>
     
-    <!-- Footer/Timestamp -->
-    <footer class="mt-8 pt-4 border-t border-gray-700 text-center">
-      <!-- ID changed to match new TIME_ID constant -->
-      <p id="time-stamp" class="text-sm text-gray-500">Last updated: --</p>
-    </footer>
+    <main class="glass-panel">
+      <header class="header-container">
+        <h1 class="header-title">
+          <svg class="header-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M4.93 19.07l1.41-1.41"/><path d="M17.66 6.34l1.41-1.41"/><circle cx="12" cy="12" r="7"/></svg>
+          IoT Weather Station
+        </h1>
+        <p class="header-subtitle">Real-time telemetry via NodeMCU & Firebase</p>
+      </header>
+
+      <section class="cards-grid">
+        <!-- Temperature Card -->
+        <article class="metric-card temp">
+          <div class="metric-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+          </div>
+          <div class="metric-label">Temperature</div>
+          <div class="metric-value" id="temp-value">--</div>
+        </article>
+
+        <!-- Humidity Card -->
+        <article class="metric-card hum">
+          <div class="metric-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a4 4 0 0 0 4-4V6a4 4 0 0 0-8 0v12a4 4 0 0 0 4 4z"/></svg>
+          </div>
+          <div class="metric-label">Humidity</div>
+          <div class="metric-value" id="hum-value">--</div>
+        </article>
+      </section>
+      
+      <footer class="footer-info">
+        <div class="timestamp" title="Live updates">
+          <span class="pulse-dot"></span>
+          <span>Last updated: <span id="time-stamp">--</span></span>
+        </div>
+      </footer>
+    </main>
   </div>
 </body>
 </html>
